@@ -19,7 +19,6 @@ import { InstallationLocal, InstallationVersion } from "@opencode-ai/core/instal
 import { makeRuntime } from "@opencode-ai/core/effect/runtime"
 import { Filesystem } from "@/util/filesystem"
 import * as Log from "@opencode-ai/core/util/log"
-import { ConfigVariable } from "@/config/variable"
 import { Npm } from "@opencode-ai/core/npm"
 import type { DeepMutable } from "@opencode-ai/core/schema"
 import type { TuiAttentionSoundName } from "@opencode-ai/plugin/tui"
@@ -112,10 +111,7 @@ const loadState = Effect.fn("TuiConfig.loadState")(function* (ctx: { directory: 
 
   const load = (text: string, configFilepath: string): Effect.Effect<Info> =>
     Effect.gen(function* () {
-      const expanded = yield* Effect.promise(() =>
-        ConfigVariable.substitute({ text, type: "path", path: configFilepath, missing: "empty" }),
-      )
-      const data = ConfigParse.jsonc(expanded, configFilepath)
+      const data = ConfigParse.jsonc(text, configFilepath)
       if (!isRecord(data)) return {} as Info
       // Flatten a nested "tui" key so users who wrote `{ "tui": { ... } }` inside tui.json
       // (mirroring the old opencode.json shape) still get their settings applied.
@@ -295,7 +291,10 @@ export const layer = Layer.effect(
   }).pipe(Effect.withSpan("TuiConfig.layer")),
 )
 
-export const defaultLayer = layer.pipe(Layer.provide(Npm.defaultLayer), Layer.provide(FSUtil.defaultLayer))
+export const defaultLayer = layer.pipe(
+  Layer.provide(Npm.defaultLayer),
+  Layer.provide(FSUtil.defaultLayer),
+)
 
 const { runPromise } = makeRuntime(Service, defaultLayer)
 
